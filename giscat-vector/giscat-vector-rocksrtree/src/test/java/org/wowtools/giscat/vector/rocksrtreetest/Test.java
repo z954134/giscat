@@ -4,18 +4,15 @@ package org.wowtools.giscat.vector.rocksrtreetest;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.util.Assert;
 import org.wowtools.giscat.vector.pojo.Feature;
 import org.wowtools.giscat.vector.pojo.PojoConstant;
 import org.wowtools.giscat.vector.rocksrtree.*;
-import org.wowtools.giscat.vector.util.analyse.Bbox;
 
 import java.io.File;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -38,7 +35,7 @@ public class Test {
         folder.delete(); // 删除空文件夹或文件
     }
 
-    private static void add(String dir, Function<Feature, RectNd> featureRectNdFunction, GeometryFactory geometryFactory) {
+    private static void add(String dir, GeometryFactory geometryFactory) {
         deleteFolder(new File(dir));
         int num = 10001;
         int txSize = 2000;
@@ -64,7 +61,7 @@ public class Test {
         builder.close();
     }
 
-    private static void query(String dir, Function<Feature, RectNd> featureRectNdFunction) throws Exception {
+    private static void query(String dir) throws Exception {
         TreeBuilder builder = new TreeBuilder(dir, null);
         final RectNd rect = new RectNd(new double[]{1.9, 1.9}, new double[]{8.1, 8.1});
         RTree pTree = builder.getRTree();
@@ -136,26 +133,26 @@ public class Test {
         Assert.equals("POINT (2 2)", res.get(1).getFeature().getGeometry().toText());
         Assert.equals("POINT (4 4)", res.get(2).getFeature().getGeometry().toText());
 
+        t = System.currentTimeMillis();
+        try (TreeTransaction tx = builder.newTx()) {
+            PointNd inputPoint = new PointNd(new double[]{2.8, 2.8});
+            int n = 3;
+            res = pTree.nearest(new PointNearestNeighbour(inputPoint, n, (f) -> {
+                return f.getFeature().getGeometry().getCoordinate().x > 5;
+            }), tx);
+        }
+        System.out.println("nearest 0 cost " + (System.currentTimeMillis() - t));
+        Assert.equals(3, res.size());
+        Assert.equals("POINT (6 6)", res.get(0).getFeature().getGeometry().toText());
+        Assert.equals("POINT (7 7)", res.get(1).getFeature().getGeometry().toText());
+        Assert.equals("POINT (8 8)", res.get(2).getFeature().getGeometry().toText());
+
         for (int i = 0; i < 10; i++) {
             t = System.currentTimeMillis();
             try (TreeTransaction tx = builder.newTx()) {
                 PointNd inputPoint = new PointNd(new double[]{2.8, 2.8});
                 int n = 3;
-                res = pTree.nearest(new NearestNeighbour(inputPoint, n) {
-
-                    private final Geometry inputGeo;
-
-                    {
-                        double x = pointNd.getCoord(0);
-                        double y = pointNd.getCoord(1);
-                        inputGeo = PojoConstant.geometryFactory.createPoint(new Coordinate(x, y));
-                    }
-
-                    @Override
-                    protected double getDist(Feature feature) {
-                        return inputGeo.distance(feature.getGeometry());
-                    }
-                }, tx);
+                res = pTree.nearest(new PointNearestNeighbour(inputPoint, n, null), tx);
             }
             System.out.println("nearest 1 cost " + (System.currentTimeMillis() - t));
             Assert.equals(3, res.size());
@@ -176,14 +173,9 @@ public class Test {
     public static void main(String[] args) throws Exception {
         String dir = "D:\\_tmp\\1\\rocksrtree";
 
-        Function<Feature, RectNd> featureRectNdFunction = (feature) -> {
-            Bbox bbox = new Bbox(feature.getGeometry());
-            return new RectNd(new double[]{bbox.xmin, bbox.ymin}, new double[]{bbox.xmax, bbox.ymax});
-        };
+        add(dir, PojoConstant.geometryFactory);
 
-        add(dir, featureRectNdFunction, PojoConstant.geometryFactory);
-
-        query(dir, featureRectNdFunction);
+        query(dir);
 
         nearest(dir);
 

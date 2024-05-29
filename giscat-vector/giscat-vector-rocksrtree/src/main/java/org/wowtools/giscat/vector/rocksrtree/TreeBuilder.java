@@ -267,7 +267,7 @@ public class TreeBuilder implements Closeable {
         } else if ('B' == type) {
             return getBranch(nodeId, tx);
         } else {
-            return null;
+            throw new RuntimeException("未知的nodeId类型 " + type);
         }
     }
 

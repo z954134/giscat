@@ -141,7 +141,6 @@ final class Leaf extends Node {
 
             entryRects[size] = tRect;
             entry[size] = t;
-            t.leafId = this.id;
             size++;
         } else {
             Node sp = split(t, tx);
@@ -176,7 +175,6 @@ final class Leaf extends Node {
                 System.arraycopy(entry, j, entry, i, nRemaining);
                 for (int k = size - nRemoved; k < size; k++) {
                     entryRects[k] = null;
-                    entry[k].leafId = null;
                     entry[k] = null;
                 }
             } else {
@@ -186,7 +184,6 @@ final class Leaf extends Node {
                 }
                 for (int k = i; k < size; k++) {
                     entryRects[k] = null;
-                    entry[k].leafId = null;
                     entry[k] = null;
                 }
             }
@@ -214,8 +211,6 @@ final class Leaf extends Node {
         for (int i = 0; i < size; i++) {
             if (entry[i].featureEquals(told, builder)) {
                 entryRects[i] = bbox;
-                tnew.leafId = this.id;
-                entry[i].leafId = null;
                 entry[i] = tnew;
             }
 

@@ -43,7 +43,6 @@ public final class RectNd {
 
     Feature feature;
 
-    String leafId;
 
     protected RocksRtreePb.RectNdPb.Builder toBuilder() {
         RocksRtreePb.RectNdPb.Builder builder = RocksRtreePb.RectNdPb.newBuilder();

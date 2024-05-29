@@ -45,8 +45,12 @@ class MvtCoordinateConvertor {
     private final double px;
     private final double py;
     private final long zoomMultiple;// 使用int的话超过22级就溢出了
+    //由extent/TILE_SIZE得到的放大倍数
+    private final double multiple;
 
     /**
+     * 默认extent为4096的转换
+     *
      * @param z 瓦片 z
      * @param x 瓦片 x
      * @param y 瓦片 y
@@ -54,7 +58,20 @@ class MvtCoordinateConvertor {
     public MvtCoordinateConvertor(byte z, int x, int y) {
         px = x * TILE_SIZE;
         py = y * TILE_SIZE;
+        multiple = 16;// 4096/256=16
+        zoomMultiple = zoomPow[z];
+    }
 
+    /**
+     * @param z      瓦片 z
+     * @param x      瓦片 x
+     * @param y      瓦片 y
+     * @param extent a int with extent value. 4096 is a good value.
+     */
+    public MvtCoordinateConvertor(byte z, int x, int y, int extent) {
+        px = x * TILE_SIZE;
+        py = y * TILE_SIZE;
+        multiple = (double) extent / TILE_SIZE;
         zoomMultiple = zoomPow[z];
     }
 
@@ -66,7 +83,7 @@ class MvtCoordinateConvertor {
      */
     public int wgs84X2mvt(double x) {
         double ppx = (x + 180) / 360 * zoomMultiple;
-        return (int) ((ppx - px) * 16 + Math.sin(x) + 0.5);
+        return (int) ((ppx - px) * multiple + Math.sin(x) + 0.5);
     }
 
     /**
@@ -79,7 +96,7 @@ class MvtCoordinateConvertor {
         double sinLatitude = Math.sin(y * Math.PI / 180);
         double mp = Math.log((1 + sinLatitude) / (1 - sinLatitude));
         double ppy = (0.5 - mp / (4 * Math.PI)) * zoomMultiple;
-        return (int) ((ppy - py) * 16 + Math.cos(y) + 0.5);
+        return (int) ((ppy - py) * multiple + Math.cos(y) + 0.5);
     }
 
 
@@ -90,7 +107,7 @@ class MvtCoordinateConvertor {
      * @return wgs84
      */
     public double mvtX2wgs84(double pixelX) {
-        double ppx = pixelX / 16d + px;
+        double ppx = pixelX / multiple + px;
         return ppx / zoomMultiple * 360d - 180d;
     }
 
@@ -101,7 +118,7 @@ class MvtCoordinateConvertor {
      * @return wgs84
      */
     public double mvtY2wgs84(double pixelY) {
-        double ppy = pixelY / 16d + py;
+        double ppy = pixelY / multiple + py;
         double mp = (0.5d - ppy / zoomMultiple) * (4d * Math.PI);
         double exp = Math.exp(mp);
         double sinLatitude = (exp - 1d) / (exp + 1d);
