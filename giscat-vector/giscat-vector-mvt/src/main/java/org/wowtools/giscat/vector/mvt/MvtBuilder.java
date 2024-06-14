@@ -286,14 +286,22 @@ public class MvtBuilder {
         // So, the code below will make sure that exterior ring is in counter-clockwise order
         // and interior ring in clockwise order.
         LineString exteriorRing = polygon.getExteriorRing();
-        if (!Orientation.isCCW(exteriorRing.getCoordinates())) {
+        // 我的修改
+        // if (!Orientation.isCCW(exteriorRing.getCoordinates())) {
+        //     exteriorRing = (LineString) exteriorRing.reverse();
+        // }
+        if (Orientation.isCCW(exteriorRing.getCoordinates())) {
             exteriorRing = (LineString) exteriorRing.reverse();
         }
         List<Integer> commands = new ArrayList<>(commands(exteriorRing.getCoordinates(), true));
 
         for (int i = 0; i < polygon.getNumInteriorRing(); i++) {
             LineString interiorRing = polygon.getInteriorRingN(i);
-            if (Orientation.isCCW(interiorRing.getCoordinates())) {
+            // 我的修改
+            // if (Orientation.isCCW(interiorRing.getCoordinates())) {
+            //     interiorRing = (LineString) interiorRing.reverse();
+            // }
+            if (!Orientation.isCCW(interiorRing.getCoordinates())) {
                 interiorRing = (LineString) interiorRing.reverse();
             }
             commands.addAll(commands(interiorRing.getCoordinates(), true));
